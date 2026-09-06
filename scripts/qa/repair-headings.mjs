@@ -3,7 +3,6 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
-const DIR = HERE
 
 // One-off repair: articles saved before the toPlainDoc fix lost every attrs
 // bag. body_markdown was written by the pipeline and is intact, so the

@@ -3,7 +3,6 @@ import { fileURLToPath } from 'node:url'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
-const DIR = HERE
 
 import { createRequire } from 'node:module'
 import fs from 'node:fs'

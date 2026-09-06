@@ -1,5 +1,5 @@
 import { markdownToProseMirror } from '../lib/content/markdown-to-prosemirror'
-import { assembleDocument, validateArticleDoc } from '../lib/content/article-schema'
+import { assembleDocument, validateArticleDoc, type PMHeading } from '../lib/content/article-schema'
 import { prosemirrorToMarkdown } from '../lib/content/markdown-serializer'
 
 let pass = 0, fail = 0
@@ -71,9 +71,10 @@ const doc = assembleDocument('The Title', [
   { heading: 'First Section', markdown: '## First Section\n\nIntro text.\n\n# Rogue H1\n\nMore.' },
   { heading: 'Second Section', markdown: 'Body two.\n\n### Real sub\n\nx' },
 ])
-const levels = (doc.content as any[]).filter(n => n.type === 'heading').map(n => n.attrs.level)
+const headings = doc.content.filter((n): n is PMHeading => n.type === 'heading')
+const levels = headings.map(n => n.attrs.level)
 check('heading levels 1,2,3,2,3', JSON.stringify(levels) === '[1,2,3,2,3]', levels)
-const texts = (doc.content as any[]).filter(n => n.type === 'heading').map(n => n.content?.[0]?.text)
+const texts = headings.map(n => n.content?.[0]?.text)
 check('duplicate heading removed', !texts.slice(2).includes('First Section'), texts)
 
 // 14 validates against the article schema
