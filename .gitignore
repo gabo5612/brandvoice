@@ -60,3 +60,7 @@ out/
 dist/
 .agents/
 _tasks/
+
+# Local MCP config: carries a Supabase project_ref that identifies the project.
+# It is machine-specific and has no business in a public repo.
+.mcp.json
