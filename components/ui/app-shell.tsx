@@ -95,7 +95,7 @@ function Sidebar({
             className="font-fragment text-heading-s text-[var(--text)] tracking-tight"
             onClick={onClose}
           >
-            Quill
+            BrandVoice
           </Link>
           <button
             onClick={onClose}

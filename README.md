@@ -1,4 +1,4 @@
-# Quill
+# BrandVoice
 
 Brand-aware editorial platform: retrieval-augmented article generation with a
 human review step. Multi-tenant, with per-brand document corpora, role-based

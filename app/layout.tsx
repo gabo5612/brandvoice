@@ -5,8 +5,8 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: {
-    template: '%s — Quill',
-    default:  'Quill',
+    template: '%s — BrandVoice',
+    default:  'BrandVoice',
   },
   description: 'Editorial tool for AI-powered content generation and management.',
 }

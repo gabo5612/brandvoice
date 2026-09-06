@@ -31,7 +31,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <div className="relative z-10 w-full max-w-sm flex flex-col items-center gap-10">
         {/* Wordmark block */}
         <div className="flex flex-col items-center gap-3">
-          {/* Quill monogram */}
+          {/* BrandVoice monogram */}
           <div className="flex items-center justify-center w-12 h-12 rounded-[var(--radius-md)] bg-[#4F46E5]">
             <span
               className="text-[#F8F8F8] font-bold leading-none select-none"
@@ -47,7 +47,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               className="text-[#F2F2F2] tracking-tight leading-none"
               style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontSize: '1.5rem' }}
             >
-              Quill
+              BrandVoice
             </span>
             <span
               className="text-[#858585] text-sm tracking-wide uppercase"
@@ -150,7 +150,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         className="relative z-10 mt-12 text-[#333333]"
         style={{ fontFamily: 'ui-sans-serif, system-ui, sans-serif', fontSize: '0.6875rem' }}
       >
-        &copy; {new Date().getFullYear()} Quill
+        &copy; {new Date().getFullYear()} BrandVoice
       </p>
     </div>
   )
