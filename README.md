@@ -45,6 +45,15 @@ in three places: the OAuth `hd` parameter, the `/auth/callback` handler, and the
 Permissions are the product of a global role (admin / editor / viewer) and a
 per-brand role (owner / editor / viewer) — see `lib/auth/permissions.ts`.
 
+## Demo
+
+`demo/` replays one real generation from the cost ledger: the brief, the brand profile that
+shaped the prompts, all 13 pipeline steps with their models, tokens, durations and
+payloads, and the finished article with its SEO fields. The ledger is recomputed in the
+browser from tokens times the pricing table in `lib/ai/cost.ts` — `node demo/verify.mjs`,
+12/12 rows agree. The client's name is replaced with a placeholder; nothing measured is
+edited. Deploy with `cd demo && vercel --prod`. See [`demo/README.md`](demo/README.md).
+
 ## Running it
 
 The whole stack runs locally in Docker — Postgres with pgvector, auth, storage
