@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0d10">
+<title>brandvoice — brand-aware editorial pipeline</title>
+<meta name="description" content="Replay of a real article generation: brand context, outline, section drafts, images, QA and SEO, with the cost ledger recomputed in the browser.">
+<style>
+  :root{--bg:#0b0d10;--panel:#14181d;--line:#252c34;--tx:#e8edf2;--dim:#8d99a6;
+        --accent:#a78bfa;--ok:#3ddc84;--warn:#ffd166;--bad:#ff6b6b}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:14px 16px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.5px}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex:none}
+  .meta{font-size:13px;color:var(--dim);margin-top:4px}
+  main{padding:16px;max-width:900px;margin:0 auto;padding-bottom:48px}
+  h2{font-size:17px;margin:26px 0 10px}
+  h2 small{font-weight:400;color:var(--dim);font-size:13px}
+  .note{background:#171232;border:1px solid #2c2258;border-radius:12px;padding:14px;
+    font-size:14px;color:#ddd4ff;margin-bottom:16px;line-height:1.6}
+  .note b{color:#c4b5fd}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px;margin-top:12px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+  .tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .tile .n{font-size:23px;font-weight:700;font-variant-numeric:tabular-nums}
+  .tile .l{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+  dl.kv{display:grid;grid-template-columns:140px 1fr;gap:7px 14px;margin:0;font-size:14px}
+  dl.kv dt{color:var(--dim)}
+  dl.kv dd{margin:0}
+  .controls{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:14px 0 0}
+  button{border:0;border-radius:11px;background:var(--accent);color:#180c33;
+    font:600 15px/1 inherit;padding:13px 18px;cursor:pointer;min-height:46px}
+  button.ghost{background:transparent;border:1px solid var(--line);color:var(--tx)}
+  button:disabled{opacity:.45;cursor:default}
+  .steps{margin-top:12px}
+  .step{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--line);
+    border-radius:12px;margin-top:9px;overflow:hidden;opacity:.35;transition:opacity .25s}
+  .step.done{opacity:1;border-left-color:var(--ok)}
+  .step.active{opacity:1;border-left-color:var(--accent)}
+  .step summary{cursor:pointer;padding:12px 14px;display:flex;gap:10px;align-items:center;list-style:none;flex-wrap:wrap}
+  .step summary::-webkit-details-marker{display:none}
+  .tag{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;
+    background:#1d2530;border-radius:6px;padding:3px 8px;color:#b9c6d3}
+  .sname{font-weight:600;text-transform:capitalize;flex:1;min-width:90px}
+  .num{font-variant-numeric:tabular-nums;color:var(--dim);font-size:13px}
+  .step .body{padding:0 14px 14px;font-size:14px}
+  pre{background:#0e1319;border:1px solid var(--line);border-radius:10px;padding:11px;
+    overflow:auto;max-height:290px;font-size:12.5px;line-height:1.5;margin:8px 0 0}
+  .ledger{position:sticky;bottom:0;background:linear-gradient(transparent,var(--bg) 22%);
+    padding-top:14px;margin-top:14px}
+  .ledger .inner{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:12px 14px;display:flex;gap:16px;flex-wrap:wrap;align-items:baseline}
+  .ledger b{font-size:19px;font-variant-numeric:tabular-nums}
+  .verdict{display:flex;gap:10px;align-items:flex-start;background:var(--panel);
+    border:1px solid var(--line);border-left:4px solid var(--ok);border-radius:12px;
+    padding:12px 14px;font-size:14px;margin-top:12px}
+  .verdict.bad{border-left-color:var(--bad)}
+  .pass{color:var(--ok)} .fail{color:var(--bad)}
+  article.out{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 18px 22px}
+  article.out h1{font-size:22px;line-height:1.3}
+  article.out h2{font-size:17px;margin-top:22px}
+  article.out h3{font-size:15px}
+  article.out img{max-width:100%;border-radius:10px}
+  .chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px}
+  .chip{background:#1d2530;border-radius:999px;padding:4px 11px;font-size:12.5px;color:#b9c6d3}
+  footer{color:var(--dim);font-size:12px;text-align:center;padding:26px 16px;line-height:1.8}
+  footer a{color:var(--accent)}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+  @media (prefers-color-scheme: light){
+    :root{--bg:#f6f7f9;--panel:#fff;--line:#dfe3e8;--tx:#12161a;--dim:#5d6773;--accent:#6d28d9}
+    .note{background:#f3efff;border-color:#ddd2ff;color:#3b2a76}
+    .note b{color:#5b21b6}
+    .tag,.chip{background:#eef1f4;color:#41505e}
+    pre{background:#f7f9fb}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="dot"></span> brandvoice</div>
+  <div class="meta" id="status">loading a recorded generation…</div>
+</header>
+
+<main>
+  <div class="note">
+    <b>A real generation, replayed.</b> The pipeline that produced this article ran against
+    OpenAI through Inngest, writing every step to a cost ledger in Postgres: which model,
+    how many tokens, how long, what it decided. This page carries that trace and plays it
+    back — the outputs, the timings and the costs are the recorded ones, and the
+    <b>ledger is recomputed in your browser</b> from tokens × the app's own pricing table.
+    The client's name is replaced with a placeholder; nothing else is edited.
+  </div>
+
+  <div class="grid" id="tiles"></div>
+
+  <h2>The brief <small>what a person asked for</small></h2>
+  <div class="card"><dl class="kv" id="brief"></dl></div>
+
+  <h2>Brand context <small>the corpus and profile that shape every prompt</small></h2>
+  <div class="card"><dl class="kv" id="profile"></dl></div>
+
+  <h2>The pipeline <small>outline → draft → images → QA → SEO</small></h2>
+  <div class="controls">
+    <button id="run">Replay the generation</button>
+    <button id="skip" class="ghost">Show every step</button>
+    <span class="num" id="speed"></span>
+  </div>
+  <div class="steps" id="steps"></div>
+  <div class="ledger"><div class="inner">
+    <span>cost so far <b id="cost">$0.000000</b></span>
+    <span class="num">tokens in <b id="tin">0</b></span>
+    <span class="num">tokens out <b id="tout">0</b></span>
+    <span class="num">wall clock <b id="wall">0s</b></span>
+  </div></div>
+
+  <div class="verdict" id="verdict">recomputing the ledger…</div>
+
+  <h2>What came out <small>with its SEO fields, as an editor sees it before approving</small></h2>
+  <div class="card"><dl class="kv" id="seo"></dl></div>
+  <article class="out" id="article"></article>
+</main>
+
+<footer>
+  <div id="prov"></div>
+  <div>Static demo · no database, no keys, no model calls ·
+    <a href="https://github.com/gabo5612/brandvoice">source</a></div>
+</footer>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>
