@@ -14,7 +14,7 @@
 // changes, so the page never reads as content published by a real company.
 
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, statSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -93,8 +93,40 @@ const data = anonymise({
   pricing: pricing(),
 });
 
-mkdirSync(join(ROOT, "demo"), { recursive: true });
-writeFileSync(join(ROOT, "demo/data.json"), JSON.stringify(data), "utf8");
+mkdirSync(join(ROOT, "demo/assets"), { recursive: true });
+
+// The images the pipeline generated live in Supabase Storage, which for local development
+// means http://127.0.0.1:54321. Left as they are, the deployed page asks the visitor's own
+// machine for them: broken images, and a loopback URL on display. So they come along —
+// downsized on the way, because the originals are 6.3 MB of PNG for three pictures.
+async function localiseImages(payload) {
+  let json = JSON.stringify(payload);
+  const urls = [...new Set(
+    (json.match(/https?:\/\/[^"'\\)\s]+\/storage\/v1\/object\/public\/[^"'\\)\s]+/g) || []))];
+  const saved = [];
+  for (const [i, url] of urls.entries()) {
+    const res = await fetch(url);
+    if (!res.ok) { console.warn(`  skipped ${url} (HTTP ${res.status})`); continue; }
+    const ext = (url.split(".").pop() || "png").toLowerCase();
+    const raw = join(ROOT, `demo/assets/image-${i}.${ext}`);
+    writeFileSync(raw, Buffer.from(await res.arrayBuffer()));
+    let name = `image-${i}.${ext}`;
+    try {
+      // sips ships with macOS; without it the original is used as it is.
+      const out = join(ROOT, `demo/assets/image-${i}.jpg`);
+      execFileSync("sips", ["-Z", "1400", "-s", "format", "jpeg", "-s", "formatOptions", "80",
+        raw, "--out", out], { stdio: "ignore" });
+      if (raw !== out) rmSync(raw);
+      name = `image-${i}.jpg`;
+    } catch { /* keep the original */ }
+    json = json.split(url).join(`./assets/${name}`);
+    saved.push({ name, kb: Math.round(statSync(join(ROOT, "demo/assets", name)).size / 1024) });
+  }
+  return { payload: JSON.parse(json), saved };
+}
+
+const { payload: localised, saved: images } = await localiseImages(data);
+writeFileSync(join(ROOT, "demo/data.json"), JSON.stringify(localised), "utf8");
 
 const total = steps.reduce((a, s) => a + s.cost_usd, 0);
 console.log({
@@ -102,5 +134,6 @@ console.log({
   words: (body?.body_markdown || "").split(/\s+/).filter(Boolean).length,
   cost_usd: Number(total.toFixed(6)),
   seconds: Math.round(steps.reduce((a, s) => a + (s.duration_ms || 0), 0) / 1000),
-  kb: Math.round(Buffer.byteLength(JSON.stringify(data)) / 1024),
+  images,
+  kb: Math.round(Buffer.byteLength(JSON.stringify(localised)) / 1024),
 });
