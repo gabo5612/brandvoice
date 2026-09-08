@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "BrandVoice — Multi-Tenant RAG Editorial Platform",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "ingest-corpus",
+        "label": "Ingest a brand corpus",
+        "focus": ["inngest", "ingest", "postgres"],
+        "note": "Uploaded .docx files are parsed, chunked and embedded in batches of 100 before they are searchable."
+      },
+      {
+        "id": "generate-article",
+        "label": "Generate an article",
+        "focus": ["inngest", "generate", "retrieve", "registry", "providers"],
+        "note": "A durable job retrieves brand context, checks the allowlist, then calls the model."
+      },
+      {
+        "id": "access-control",
+        "label": "Who can see what",
+        "focus": ["browser", "nextjs", "auth", "postgres"],
+        "note": "Sign-in is domain-restricted and every read is filtered by row-level security."
+      }
+    ]
+  },
+  "components": [
+    { "id": "auth",      "type": "security",   "label": "Supabase Auth",       "sublabel": "single Google Workspace",   "pos": [302, 100],  "size": [142, 58] },
+    { "id": "registry",  "type": "security",   "label": "Model Allowlist",     "sublabel": "mirrors app.ai_models",     "pos": [826, 100],  "size": [142, 58] },
+    { "id": "browser",   "type": "frontend",   "label": "Editor UI",           "sublabel": "React 19 · Tiptap",         "pos": [40, 246],   "size": [142, 58] },
+    { "id": "nextjs",    "type": "backend",    "label": "App Router Server",   "sublabel": "handlers + server actions", "pos": [302, 246],  "size": [142, 58] },
+    { "id": "inngest",   "type": "messagebus", "label": "Inngest",             "sublabel": "durable background jobs",   "pos": [564, 246],  "size": [142, 58] },
+    { "id": "generate",  "type": "backend",    "label": "Generation Pipeline", "sublabel": "5 traced steps",            "pos": [826, 246],  "size": [142, 58] },
+    { "id": "providers", "type": "external",   "label": "Model APIs",          "sublabel": "Anthropic · OpenAI",        "pos": [1130, 246], "size": [142, 58] },
+    { "id": "ingest",    "type": "backend",    "label": "Ingestion",           "sublabel": "parse → chunk → embed",     "pos": [564, 392],  "size": [142, 58] },
+    { "id": "retrieve",  "type": "backend",    "label": "Retrieval",           "sublabel": "match_brand_chunks",        "pos": [826, 392],  "size": [142, 58] },
+    { "id": "postgres",  "type": "database",   "label": "Postgres + pgvector", "sublabel": "RLS · halfvec(1536)",       "pos": [695, 538],  "size": [142, 58] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Runs locally — Supabase + Inngest in Docker", "wraps": ["auth", "registry", "nextjs", "inngest", "generate", "ingest", "retrieve", "postgres"], "pad": 26 },
+    { "kind": "security-group", "label": "per-brand data plane · row-level security", "wraps": ["ingest", "retrieve", "postgres"], "pad": 12 }
+  ],
+  "connections": [
+    { "from": "browser",   "to": "nextjs",    "label": "HTTPS",              "variant": "emphasis" },
+    { "from": "nextjs",    "to": "auth",      "label": "OAuth hd=domain",    "variant": "security" },
+    { "from": "nextjs",    "to": "inngest",   "label": "emit event",         "variant": "emphasis" },
+    { "from": "nextjs",    "to": "postgres",  "label": "SQL under user JWT", "variant": "security", "fromSide": "bottom", "toSide": "left", "via": [[373, 567]] },
+    { "from": "inngest",   "to": "ingest",    "label": "ingest-brand-docs",  "variant": "dashed", "labelAt": [635, 348] },
+    { "from": "ingest",    "to": "postgres",  "label": "chunks + embeddings", "fromSide": "bottom", "toSide": "top" },
+    { "from": "inngest",   "to": "generate",  "label": "generate-article",   "variant": "emphasis" },
+    { "from": "generate",  "to": "registry",  "label": "validate model",     "variant": "security" },
+    { "from": "generate",  "to": "retrieve",  "label": "brand context", "labelAt": [897, 348] },
+    { "from": "retrieve",  "to": "postgres",  "label": "cosine top-k",       "fromSide": "bottom", "toSide": "right" },
+    { "from": "generate",  "to": "providers", "label": "Vercel AI SDK",      "variant": "emphasis" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Retrieval invariant", "items": ["text-embedding-3-large is requested at 1536 dims, not its default 3072", "That matches the halfvec(1536) column and app.match_brand_chunks", "Ingestion and retrieval import model and dimension from one module"] },
+    { "dot": "rose", "title": "Access control", "items": ["Sign-in restricted to one Google Workspace domain", "Enforced in the OAuth hd param, the callback, and a Postgres trigger", "Permission = global role × per-brand role"] },
+    { "dot": "emerald", "title": "Evidence", "items": [".docx uploads land in Supabase Storage, then embed in batches of 100", "Every generation writes a costed row to app.generations", "Only the model API call leaves the machine"] }
+  ]
+}
